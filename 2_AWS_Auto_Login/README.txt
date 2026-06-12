@@ -71,4 +71,4 @@ LUU Y
  NGON NGU / LANGUAGE / 语言
 ----------------------------------------------------------
   Doi ngon ngu o goc tren ben phai: Tieng Viet / English / 中文
-  (Change language at top-right dropdown.)
+  README: README.txt (VI) | README.en.txt | README.zh.txt

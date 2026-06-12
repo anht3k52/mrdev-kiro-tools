@@ -161,7 +161,7 @@ class App(*_BASES):
         # Log
         lf = ctk.CTkFrame(self, corner_radius=8)
         lf.pack(fill="both", expand=False, padx=10, pady=(0, 10))
-        ctk.CTkLabel(lf, text="Log:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(6, 0))
+        ctk.CTkLabel(lf, text=t("Log:"), font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(6, 0))
         self._log_box = ctk.CTkTextbox(lf, height=130, font=ctk.CTkFont(family="Consolas", size=11))
         self._log_box.pack(fill="both", expand=True, padx=10, pady=(2, 8))
         self._log_box.configure(state="disabled")
@@ -213,7 +213,7 @@ class App(*_BASES):
             w.destroy()
         folder = Path(self._folder.get().strip() or DEFAULT_DIR)
         if not folder.exists():
-            ctk.CTkLabel(self._list, text=f"(folder chua ton tai: {folder})",
+            ctk.CTkLabel(self._list, text=t("(folder chua ton tai: {path})").format(path=folder),
                          font=ctk.CTkFont(slant="italic")).pack(pady=12)
             return
         files = sorted([p for p in folder.glob("*.json")

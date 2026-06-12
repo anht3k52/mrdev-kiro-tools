@@ -2,6 +2,10 @@
 
 Bộ 3 tool Python hỗ trợ quản lý account Kiro (AWS IAM Identity Center + 9router + Kiro IDE).
 
+**Ngôn ngữ / Languages:** **Tiếng Việt** · [English](README.en.md) · [中文](README.zh.md)
+
+Giao diện GUI: chọn **Tiếng Việt / English / 中文** ở góc trên bên phải mỗi tool.
+
 | Tool | Thư mục | Chức năng |
 |------|---------|-----------|
 | **Tool 1** | `1_Kiro_IDE_Swapper/` | Swap account Kiro IDE bằng file JSON |
@@ -53,6 +57,14 @@ Hai region **khác nhau**:
 1. **Tool 2** — login account IAM → `output_json/kiro-durable-*.json`
 2. **Tool 3** — kéo JSON vào 9router → fix 403 / tạo connection → restart 9router
 3. **Tool 1** — swap account trên Kiro IDE desktop
+
+## README từng tool
+
+| Tool | Tiếng Việt | English | 中文 |
+|------|------------|---------|------|
+| Tool 1 | `1_Kiro_IDE_Swapper/README.txt` | `README.en.txt` | `README.zh.txt` |
+| Tool 2 | `2_AWS_Auto_Login/README.txt` | `README.en.txt` | `README.zh.txt` |
+| Tool 3 | `README.txt` | `README.en.txt` | `README.zh.txt` |
 
 ## Tài liệu kỹ thuật
 

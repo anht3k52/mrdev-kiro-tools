@@ -27,7 +27,15 @@ def t(s: str) -> str:
 _TR = {
     # ---------- Chung ----------
     "(bam de mo)": {"en": "(click to open)", "zh": "(点击打开)"},
+    "Telegram: @BotbanloBot": {"en": "Telegram: @BotbanloBot", "zh": "Telegram: @BotbanloBot"},
+    "Log:": {"en": "Log:", "zh": "日志:"},
     "Ngon ngu:": {"en": "Language:", "zh": "语言:"},
+    "thieu profileArn (403)": {"en": "missing profileArn (403)", "zh": "缺少 profileArn (403)"},
+    "cookie-only (chet ~1h)": {"en": "cookie-only (~1h)", "zh": "仅 cookie（约1小时）"},
+    "   ⚠ cookie-only (~1h)": {"en": "   ⚠ cookie-only (~1h)", "zh": "   ⚠ 仅 cookie（约1小时）"},
+    "DB loi:": {"en": "DB error:", "zh": "数据库错误:"},
+    "(folder chua ton tai: {path})": {"en": "(folder not found: {path})", "zh": "（文件夹不存在: {path}）"},
+    "Luong song song:": {"en": "Parallel threads:", "zh": "并行线程:"},
     "Loi": {"en": "Error", "zh": "错误"},
     "Xong": {"en": "Done", "zh": "完成"},
     "Tiep tuc?": {"en": "Continue?", "zh": "继续？"},
@@ -83,20 +91,12 @@ _TR = {
     "OIDC region:": {"en": "OIDC region:", "zh": "OIDC 区域:"},
     "Kiro region:": {"en": "Kiro region:", "zh": "Kiro 区域:"},
     "Mat khau moi (doi lan dau):": {"en": "New password (first-login reset):", "zh": "新密码（首次登录需改）:"},
-    "Mat khau dang nhap (tuy chinh):": {
-        "en": "Login password (custom):",
-        "zh": "登录密码（自定义）:",
-    },
+    "Mat khau dang nhap (tuy chinh):": {"en": "Login password (custom):", "zh": "登录密码（自定义）:"},
     "Ghi de password trong file (da doi pass)": {
-        "en": "Override file password (already changed pass)",
-        "zh": "覆盖文件中的密码（已改过密）",
-    },
+        "en": "Override file password (already changed pass)", "zh": "覆盖文件中的密码（已改过密）"},
     "Bat 'ghi de password' va nhap mat khau hien tai.": {
-        "en": "Enable override and enter the current login password.",
-        "zh": "请勾选覆盖并输入当前登录密码。",
-    },
+        "en": "Enable override and enter the current login password.", "zh": "请勾选覆盖并输入当前登录密码。"},
     "Login password:": {"en": "Login password:", "zh": "登录密码:"},
-    "Luong song song:": {"en": "Parallel threads:", "zh": "并行线程:"},
     "Headless (an browser)": {"en": "Headless (hide browser)", "zh": "无头模式（隐藏浏览器）"},
     "🚀 BAT DAU AUTO LOGIN": {"en": "🚀 START AUTO LOGIN", "zh": "🚀 开始自动登录"},
     "⛔ Dung": {"en": "⛔ Stop", "zh": "⛔ 停止"},
@@ -104,12 +104,11 @@ _TR = {
     "Da doi pass roi -> tick 'Ghi de password' va nhap mat khau hien tai. "
     "Account fresh khong MFA login 100% tu dong. Neu gap captcha (account bi nghi ngo) "
     "-> tat Headless de giai tay.":
-        {"en": "Auto-detects both cases: new account (forced password change) & already-changed account. "
+        {"en": "Auto-detects new account (forced password change) & already-changed account. "
                "Already changed pass -> tick override and enter current login password. "
-               "Fresh accounts without MFA log in 100% automatically. If a captcha appears (suspicious account) "
-               "-> turn off Headless to solve it manually.",
-         "zh": "自动识别两种情况：新账号（强制改密）和已改密账号。已改过密 -> 勾选覆盖并输入当前登录密码。"
-               "无 MFA 的新账号可 100% 自动登录。若出现验证码 -> 关闭无头模式手动处理。"},
+               "Fresh accounts without MFA log in automatically. Captcha -> turn off Headless.",
+         "zh": "自动识别新账号（强制改密）与已改密账号。已改过密请勾选覆盖并输入当前密码。"
+               "无 MFA 可全自动登录。遇验证码请关闭无头模式手动处理。"},
     "Thieu file": {"en": "Missing file", "zh": "缺少文件"},
     "Hay chon file account hop le.": {"en": "Please choose a valid account file.", "zh": "请选择有效的账号文件。"},
     "Loi doc file": {"en": "File read error", "zh": "读取文件出错"},
@@ -127,7 +126,7 @@ _TR = {
     "Tu restart 9router sau khi inject":
         {"en": "Auto-restart 9router after inject", "zh": "注入后自动重启 9router"},
     "Live verify (goi API, chac chan 200)":
-        {"en": "Live verify (call API, ensure 200)", "zh": "实时验证（调用 API，确保 200）"},
+        {"en": "Live verify (ListAvailableProfiles API)", "zh": "实时验证（ListAvailableProfiles API）"},
     "📥 Chon file JSON...": {"en": "📥 Choose JSON file...", "zh": "📥 选择 JSON 文件..."},
     "📥 KEO-THA (vut) file JSON vao day → tu Import + Fix 403 (tao moi neu chua co)":
         {"en": "📥 DRAG & DROP JSON files here → auto Import + Fix 403 (create new if missing)",
@@ -180,6 +179,17 @@ _TR = {
     "CAP NHAT": {"en": "UPDATE", "zh": "更新"},
     "TAO MOI": {"en": "NEW", "zh": "新建"},
     "TRUNG QUOTA": {"en": "DUP QUOTA", "zh": "额度重复"},
+    "BO QUA TRUNG": {"en": "SKIP DUP", "zh": "跳过重复"},
+    "Bo qua trung:": {"en": "Skipped duplicates:", "zh": "跳过重复:"},
+    "Da bo qua {n} file trung profileArn trong lo nay (chi giu 1).":
+        {"en": "Skipped {n} duplicate profileArn file(s) in this batch (kept 1 only).",
+         "zh": "本批次跳过 {n} 个 profileArn 重复文件（仅保留 1 个）。"},
+    "Da bo qua {n} file trung account trong lo nay (cung email/token).":
+        {"en": "Skipped {n} duplicate account file(s) in this batch (same email/token).",
+         "zh": "本批次跳过 {n} 个重复账号文件（相同 email/token）。"},
+    "CANH BAO: nhieu account CHUNG profileArn — quota Kiro giong nhau, nhung moi connection co token rieng.":
+        {"en": "WARNING: multiple accounts SHARE profileArn — same Kiro quota, but each connection has its own token.",
+         "zh": "警告：多个账号共用 profileArn — Kiro 额度相同，但每个连接有独立 token。"},
     "tam ~1h": {"en": "~1h temp", "zh": "临时~1h"},
     "⚠⚠ CANH BAO: {n} account TRUNG profileArn (chung 1 quota voi acc da co/da add — them KHONG tang quota):":
         {"en": "⚠⚠ WARNING: {n} account(s) DUPLICATE profileArn (same quota as existing/added — adds NO extra quota):",

@@ -66,7 +66,7 @@ class App(*_BASES):
 
     # ------------------------------------------------------------------
     def _build(self) -> None:
-        _brand = ctk.CTkLabel(self, text="Telegram: @BotbanloBot  (bam de mo)",
+        _brand = ctk.CTkLabel(self, text=t("Telegram: @BotbanloBot") + "  " + t("(bam de mo)"),
                               text_color="#3498db", cursor="hand2",
                               font=ctk.CTkFont(size=13, weight="bold", underline=True))
         _brand.pack(side="bottom", pady=(2, 6))
@@ -130,7 +130,7 @@ class App(*_BASES):
         # log
         lf = ctk.CTkFrame(self, corner_radius=8)
         lf.pack(fill="both", expand=False, padx=10, pady=(0, 10))
-        ctk.CTkLabel(lf, text="Log:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(6, 0))
+        ctk.CTkLabel(lf, text=t("Log:"), font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(6, 0))
         self._log_box = ctk.CTkTextbox(lf, height=130, font=ctk.CTkFont(family="Consolas", size=11))
         self._log_box.pack(fill="both", expand=True, padx=10, pady=(2, 8))
         self._log_box.configure(state="disabled")
@@ -171,7 +171,7 @@ class App(*_BASES):
         try:
             rows = list_kiro_rows(db)
         except Exception as e:
-            self._db_lbl.configure(text=f"DB loi: {e}", text_color="#e74c3c")
+            self._db_lbl.configure(text=f"{t('DB loi:')} {e}", text_color="#e74c3c")
             return
         nul = sum(1 for r in rows if not row_profile_arn(r))
         eph = sum(1 for r in rows if row_profile_arn(r) and not row_can_refresh(r))
@@ -180,8 +180,8 @@ class App(*_BASES):
         dup_note = (f" · ⚠ {dup} " + t("acc CHUNG QUOTA") + f" ({len(set(arns))} profileArn)") if dup else ""
         color = "#e67e22" if (nul or eph or dup) else "#2ecc71"
         self._db_lbl.configure(
-            text=(f"DB: {db}\n{len(rows)} Kiro · {nul} thieu profileArn (403) · "
-                  f"{eph} cookie-only (chet ~1h){dup_note}"),
+            text=(f"DB: {db}\n{len(rows)} Kiro · {nul} {t('thieu profileArn (403)')} · "
+                  f"{eph} {t('cookie-only (chet ~1h)')}{dup_note}"),
             text_color=color)
         if not rows:
             ctk.CTkLabel(self._list,
@@ -204,7 +204,7 @@ class App(*_BASES):
         row.pack(fill="x", padx=2, pady=2)
         ctk.CTkLabel(row, text=badge, width=52, height=22, fg_color=col, corner_radius=4,
                      font=ctk.CTkFont(size=11, weight="bold")).pack(side="left", padx=(6, 8), pady=4)
-        note = "" if durable else "   ⚠ cookie-only (~1h)"
+        note = "" if durable else t("   ⚠ cookie-only (~1h)")
         ctk.CTkLabel(row, text=describe_row(r) + note, anchor="w",
                      font=ctk.CTkFont(family="Consolas", size=11),
                      text_color=(None if durable else "#e67e22")).pack(

@@ -81,7 +81,7 @@ class App(ctk.CTk):
 
     # ------------------------------------------------------------------
     def _build(self) -> None:
-        _brand = ctk.CTkLabel(self, text="Telegram: @BotbanloBot  (bam de mo)",
+        _brand = ctk.CTkLabel(self, text=t("Telegram: @BotbanloBot") + "  " + t("(bam de mo)"),
                               text_color="#3498db", cursor="hand2",
                               font=ctk.CTkFont(size=13, weight="bold", underline=True))
         _brand.pack(side="bottom", pady=(2, 6))
@@ -184,7 +184,7 @@ class App(ctk.CTk):
         # Log
         lf = ctk.CTkFrame(self, corner_radius=8)
         lf.pack(fill="both", expand=True, padx=10, pady=(2, 10))
-        ctk.CTkLabel(lf, text="Log:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(6, 0))
+        ctk.CTkLabel(lf, text=t("Log:"), font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(6, 0))
         self._log_box = ctk.CTkTextbox(lf, font=ctk.CTkFont(family="Consolas", size=11))
         self._log_box.pack(fill="both", expand=True, padx=10, pady=(2, 8))
         self._log_box.configure(state="disabled")

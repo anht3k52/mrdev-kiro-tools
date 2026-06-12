@@ -41,3 +41,5 @@ LUU Y
 ----------------------------------------------------------
   Doi ngon ngu o goc tren ben phai: Tieng Viet / English / 中文
   (Change language at top-right dropdown.)
+  README: README.txt (VI) | README.en.txt | README.zh.txt
+  Tong hop: README.md | README.en.md | README.zh.md
