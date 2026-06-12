@@ -1,0 +1,45 @@
+# Build / cache
+**/_build/
+**/ms-playwright/
+**/__pycache__/
+*.pyc
+*.pyo
+*.exe
+*.dll
+*.so
+*.o
+*.dist/
+*.onefile-build/
+*.build/
+
+# Archives (co the chua token/account)
+*.zip
+*.rar
+*.7z
+
+# Credentials & account data — KHONG BAO GIO commit
+266mrdev/
+**/output_json/
+**/accounts/
+*.kiro-auth-token.json
+kiro-durable-*.json
+**/kiro-durable-*.json
+aws-sso-users*.txt
+*.xlsx
+*.xlsm
+
+# Secrets
+.env
+.env.*
+*.pem
+secrets.json
+adm_*
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+_diag_out/
+nuitka-crash-report.xml
