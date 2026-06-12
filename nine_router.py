@@ -67,9 +67,16 @@ def region_from_profile_arn(arn: str) -> str:
     return ""
 
 
-def kiro_q_endpoint(region: str = "") -> str:
+def kiro_q_base(region: str = "") -> str:
     r = (region or "").strip() or DEFAULT_KIRO_REGION
-    return f"https://q.{r}.amazonaws.com/generateAssistantResponse"
+    return f"https://q.{r}.amazonaws.com/"
+
+
+def kiro_q_endpoint(region: str = "") -> str:
+    return kiro_q_base(region) + "generateAssistantResponse"
+
+
+CW_LIST_PROFILES_TARGET = "AmazonCodeWhispererService.ListAvailableProfiles"
 
 
 def resolve_kiro_region(*, region: str = "", kiro_region: str = "", profile_arn: str = "") -> str:
@@ -522,11 +529,15 @@ def match_export_to_rows(rows: list[KiroRow], export: KiroExport) -> MatchResult
                  if _row_refresh_token(r.data) == export.refresh_token]
         if by_rt:
             return MatchResult(exact=by_rt, reason="refresh_token trung khop")
-    # 4. profileArn trung — chi khi DUY NHAT 1 row (tranh ghi de nham account khac)
+    # 4. profileArn trung — 1 row VA email khop (nhieu user cung profileArn enterprise)
     if export.profile_arn:
         by_arn = [r for r in rows if row_profile_arn(r) == export.profile_arn]
         if len(by_arn) == 1:
-            return MatchResult(exact=by_arn, reason="profileArn trung khop (1 row)")
+            r0 = by_arn[0]
+            em = (export.email or "").strip().lower()
+            row_em = (r0.email or "").strip().lower()
+            if not em or not row_em or em == row_em:
+                return MatchResult(exact=by_arn, reason="profileArn trung khop (1 row)")
     # 5. IDC directory — chi khi DUY NHAT 1 row trong directory
     if export.start_url_dir:
         dirs = [r for r in rows
@@ -728,36 +739,34 @@ def verify_token_profile(
     region: str = "",
     timeout: float = 30.0,
 ):
-    """POST generateAssistantResponse. Tra ve (http_status, message).
+    """Goi ListAvailableProfiles (khong can modelId). Tra ve (http_status, message).
 
-    200 -> token + profileArn OK, 9router se hien quota.
-    403 -> sai/null profileArn hoac token het han/invalid.
+    200 -> access token hop le; kiem tra profileArn co trong list neu co.
+    403 -> token/profile khong duoc phep.
     """
     reg = resolve_kiro_region(region=region, profile_arn=profile_arn)
-    url = kiro_q_endpoint(reg)
-    body = {
-        "conversationState": {
-            "chatTriggerType": "MANUAL",
-            "currentMessage": {
-                "userInputMessage": {
-                    "content": "hi", "origin": "IDE",
-                    "userInputMessageContext": {},
-                }
-            },
-            "history": [],
-        },
-    }
-    if profile_arn:
-        body["profileArn"] = profile_arn
-    raw = json.dumps(body).encode("utf-8")
+    url = kiro_q_base(reg)
+    raw = json.dumps({"maxResults": 10}).encode("utf-8")
     req = urllib.request.Request(url, data=raw, method="POST")
     req.add_header("Authorization", f"Bearer {access_token}")
-    req.add_header("Content-Type", "application/json")
-    req.add_header("User-Agent", "kiro-swapper/1.0")
+    req.add_header("Content-Type", "application/x-amz-json-1.0")
+    req.add_header("X-Amz-Target", CW_LIST_PROFILES_TARGET)
+    req.add_header("User-Agent", "kiro-injector/1.0")
     ctx = ssl.create_default_context()
     try:
         with urllib.request.urlopen(req, context=ctx, timeout=timeout) as r:
-            return r.status, f"OK — token + profileArn hop le (q.{reg})."
+            data = json.loads(r.read().decode("utf-8", "replace"))
+            profiles = data.get("profiles") or []
+            arns = [str(p.get("arn") or p.get("profileArn") or "") for p in profiles]
+            arns = [a for a in arns if a]
+            if profile_arn and arns and profile_arn not in arns:
+                return 200, (
+                    f"OK — token hop le (q.{reg}), {len(arns)} profile. "
+                    f"WARN: profileArn inject khong nam trong list API."
+                )
+            if profile_arn and profile_arn in arns:
+                return r.status, f"OK — token + profileArn hop le (q.{reg})."
+            return r.status, f"OK — token hop le, {len(profiles)} profile(s) (q.{reg})."
     except urllib.error.HTTPError as e:
         try:
             payload = json.loads(e.read(800).decode("utf-8", "replace"))

@@ -108,7 +108,7 @@ _TR = {
     "Tu restart 9router sau khi inject":
         {"en": "Auto-restart 9router after inject", "zh": "注入后自动重启 9router"},
     "Live verify (goi API, chac chan 200)":
-        {"en": "Live verify (call API, ensure 200)", "zh": "实时验证（调用 API，确保 200）"},
+        {"en": "Live verify (ListAvailableProfiles API)", "zh": "实时验证（ListAvailableProfiles API）"},
     "📥 Chon file JSON...": {"en": "📥 Choose JSON file...", "zh": "📥 选择 JSON 文件..."},
     "📥 KEO-THA (vut) file JSON vao day → tu Import + Fix 403 (tao moi neu chua co)":
         {"en": "📥 DRAG & DROP JSON files here → auto Import + Fix 403 (create new if missing)",
