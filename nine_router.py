@@ -16,7 +16,8 @@ data co shape "oauth":
         "profileArn": null,            <- *** null = loi 403 ***
         "clientId": "...",
         "clientSecret": "...",
-        "region": "us-east-1",
+        "region": "us-east-1",           <- OIDC/IAM (token refresh), KHONG doi neu IDC o US
+        "kiroRegion": "eu-central-1",    <- Kiro Q API (quota), workspace EU
         "authMethod": "idc",
         "startUrl": "https://d-9066713dd7.awsapps.com/start"
       }
@@ -55,7 +56,8 @@ from typing import Callable, Optional
 import psutil
 
 Q_ENDPOINT = "https://q.eu-central-1.amazonaws.com/generateAssistantResponse"  # legacy alias
-DEFAULT_KIRO_REGION = "eu-central-1"
+DEFAULT_OIDC_REGION = "us-east-1"   # IAM Identity Center / OIDC token refresh
+DEFAULT_KIRO_REGION = "eu-central-1"  # Kiro Q API (quota generateAssistantResponse)
 
 
 def region_from_profile_arn(arn: str) -> str:
@@ -70,13 +72,18 @@ def kiro_q_endpoint(region: str = "") -> str:
     return f"https://q.{r}.amazonaws.com/generateAssistantResponse"
 
 
-def resolve_kiro_region(*, region: str = "", profile_arn: str = "") -> str:
-    """Uu tien region tu JSON/export; fallback profile_arn; cuoi cung mac dinh EU."""
-    r = (region or "").strip()
+def resolve_kiro_region(*, region: str = "", kiro_region: str = "", profile_arn: str = "") -> str:
+    """Region endpoint Kiro Q (q.*.amazonaws.com) — KHAC OIDC/AWS region."""
+    r = (kiro_region or region or "").strip()
     if r:
         return r
-    r = region_from_profile_arn(profile_arn)
-    return r or DEFAULT_KIRO_REGION
+    return DEFAULT_KIRO_REGION
+
+
+def resolve_oidc_region(*, oidc_region: str = "", idc_region: str = "", psd_region: str = "") -> str:
+    """Region OIDC (oidc.*.amazonaws.com) — IAM login/refresh, thuong us-east-1."""
+    r = (oidc_region or idc_region or psd_region or "").strip()
+    return r or DEFAULT_OIDC_REGION
 
 # Kiro IDE / AWS SSO luu creds o day sau khi login that (SSO device flow):
 #   kiro-auth-token.json     -> accessToken, refreshToken, profileArn, expiresAt
@@ -231,13 +238,36 @@ def row_can_refresh(row_or_data) -> bool:
     return bool(refresh and cid and csec)
 
 
+def row_oidc_region(row_or_data) -> str:
+    """OIDC/AWS region trong 9router (providerSpecificData.region)."""
+    data = row_or_data.data if isinstance(row_or_data, KiroRow) else row_or_data
+    data = data or {}
+    psd = data.get("providerSpecificData") or {}
+    return resolve_oidc_region(
+        oidc_region=str(psd.get("oidcRegion") or data.get("oidc_region") or ""),
+        psd_region=str(psd.get("region") or data.get("region") or ""),
+    )
+
+
+def row_kiro_region(row_or_data) -> str:
+    """Kiro Q API region (providerSpecificData.kiroRegion), khong phai OIDC."""
+    data = row_or_data.data if isinstance(row_or_data, KiroRow) else row_or_data
+    data = data or {}
+    psd = data.get("providerSpecificData") or {}
+    return resolve_kiro_region(
+        kiro_region=str(psd.get("kiroRegion") or data.get("kiro_region") or ""),
+        region=str(data.get("kiro_region") or ""),
+    )
+
+
 def describe_row(r: KiroRow) -> str:
     arn = _row_profile_arn(r.data)
     short = arn.split("/")[-1] if arn else "NULL"
     d = idc_directory(_row_start_url(r.data))
     shape = _detect_shape(r.data)
-    return (f"{r.id[:8]}..  {r.name or '?'}  shape={shape}  dir={d or '?'}  "
-            f"profile={short}  email={r.email or '?'}")
+    return (f"{r.id[:8]}..  {r.name or '?'}  shape={shape}  "
+            f"oidc={row_oidc_region(r)}  kiro={row_kiro_region(r)}  "
+            f"dir={d or '?'}  profile={short}  email={r.email or '?'}")
 
 
 # ---------------------------------------------------------------------
@@ -250,7 +280,8 @@ class KiroExport:
     profile_arn: str = ""
     expires_at: str = ""
     idp: str = ""            # AWSIdC / Google / Github
-    region: str = ""
+    region: str = ""         # Kiro Q API region (Tool 2 field "region")
+    oidc_region: str = ""    # IAM/OIDC region (Tool 2 field "oidc_region")
     start_url: str = ""      # https://d-xxxx.awsapps.com/start
     start_url_dir: str = ""  # d-xxxxxxxxxx
     user_id: str = ""
@@ -306,7 +337,25 @@ def _parse_account_dict(d: dict, source: str = "account") -> KiroExport:
     client_id = g("clientId", "client_id") or psd.get("clientId") or ""
     client_secret = g("clientSecret", "client_secret") or psd.get("clientSecret") or ""
     machine_id = g("machineId", "machine_id")
-    region = g("region") or psd.get("region") or region_from_profile_arn(arn) or DEFAULT_KIRO_REGION
+    oidc_region = (
+        g("oidc_region", "oidcRegion")
+        or psd.get("oidcRegion")
+        or g("IdcRegion")
+        or ""
+    )
+    kiro_region = (
+        g("kiro_region", "kiroRegion")
+        or psd.get("kiroRegion")
+        or g("region")
+        or ""
+    )
+    if not oidc_region and psd.get("region") and not psd.get("kiroRegion"):
+        # Row 9router cu: providerSpecificData.region = OIDC (us-east-1)
+        oidc_region = str(psd.get("region"))
+    if not kiro_region:
+        kiro_region = DEFAULT_KIRO_REGION
+    if not oidc_region:
+        oidc_region = DEFAULT_OIDC_REGION
     auth_method = g("authMethod", "auth_method") or psd.get("authMethod") or ""
     start_url = g("startUrl", "start_url") or psd.get("startUrl") or ""
     email = g("email")
@@ -320,7 +369,8 @@ def _parse_account_dict(d: dict, source: str = "account") -> KiroExport:
 
     return KiroExport(
         access_token=access or "", refresh_token=refresh or "", profile_arn=arn or "",
-        expires_at=expires or "", region=region, start_url=start_url, start_url_dir=d_dir,
+        expires_at=expires or "", region=kiro_region, oidc_region=oidc_region,
+        start_url=start_url, start_url_dir=d_dir,
         auth_method=auth_method, client_id=client_id or "", client_secret=client_secret or "",
         machine_id=machine_id or "", email=email or "", provider_name=provider_name or "",
         idp=provider_name or "", source=source,
@@ -366,7 +416,8 @@ def read_local_sso_creds(cache_dir: Optional[Path] = None) -> Optional[dict]:
         "provider": tok.get("provider"),
         "client_id": reg.get("clientId"),
         "client_secret": reg.get("clientSecret"),
-        "region": tok.get("region") or reg.get("region") or region_from_profile_arn(tok.get("profileArn") or "") or DEFAULT_KIRO_REGION,
+        "region": DEFAULT_KIRO_REGION,
+        "oidc_region": tok.get("region") or reg.get("region") or DEFAULT_OIDC_REGION,
         "start_url": tok.get("startUrl") or reg.get("startUrl") or "",
         "machine_id": tok.get("machineId") or "",
     }
@@ -397,14 +448,15 @@ def parse_kiro_export(path: Path | str) -> KiroExport:
             user_id = val("UserId")
             access = val("AccessToken")
             arn = val("ProfileArn")
-            region = val("IdcRegion") or region_from_profile_arn(arn) or DEFAULT_KIRO_REGION
+            oidc_reg = val("IdcRegion") or DEFAULT_OIDC_REGION
             refresh = val("RefreshToken")  # social only; IDC cookie khong co
             d = idc_directory(user_id) or idc_directory(arn)
             start_url = f"https://{d}.awsapps.com/start" if d else ""
             auth_method = "idc" if (idp == "AWSIdC" or val("ApplicationArn")) else "social"
             return KiroExport(
                 access_token=access or "", refresh_token=refresh or "",
-                profile_arn=arn or "", idp=idp or "", region=region,
+                profile_arn=arn or "", idp=idp or "", region=DEFAULT_KIRO_REGION,
+                oidc_region=oidc_reg,
                 start_url=start_url, start_url_dir=d, user_id=user_id or "",
                 auth_method=auth_method, source="cookie",
             )
@@ -485,9 +537,22 @@ def apply_export_to_row(
         expires = (now + dt.timedelta(minutes=access_ttl_minutes)).strftime(
             "%Y-%m-%dT%H:%M:%S.000Z")
 
+        oidc_reg = export.oidc_region or DEFAULT_OIDC_REGION
+        kiro_reg = export.region or DEFAULT_KIRO_REGION
         if shape == "oauth":
             psd = dict(data.get("providerSpecificData") or {})
             psd["profileArn"] = export.profile_arn
+            psd["region"] = oidc_reg
+            psd["kiroRegion"] = kiro_reg
+            psd["oidcRegion"] = oidc_reg
+            if export.auth_method:
+                psd["authMethod"] = export.auth_method
+            if export.client_id:
+                psd["clientId"] = export.client_id
+            if export.client_secret:
+                psd["clientSecret"] = export.client_secret
+            if export.start_url:
+                psd["startUrl"] = export.start_url
             data["providerSpecificData"] = psd
             if update_access_token and export.access_token:
                 data["accessToken"] = export.access_token
@@ -497,6 +562,15 @@ def apply_export_to_row(
             data["testStatus"] = "active"
         else:  # idc / snake_case
             data["profile_arn"] = export.profile_arn
+            data["region"] = oidc_reg
+            data["kiro_region"] = kiro_reg
+            data["oidc_region"] = oidc_reg
+            if export.client_id:
+                data["client_id"] = export.client_id
+            if export.client_secret:
+                data["client_secret"] = export.client_secret
+            if export.start_url:
+                data["start_url"] = export.start_url
             if update_access_token and export.access_token:
                 data["access_token"] = export.access_token
                 data["expires_at"] = expires
@@ -555,9 +629,13 @@ def create_connection(
         expires = (now + dt.timedelta(minutes=access_ttl_minutes)).strftime(
             "%Y-%m-%dT%H:%M:%S.000Z")
 
+    oidc_reg = export.oidc_region or DEFAULT_OIDC_REGION
+    kiro_reg = export.region or DEFAULT_KIRO_REGION
     psd = {
         "profileArn": export.profile_arn,
-        "region": export.region or region_from_profile_arn(export.profile_arn) or DEFAULT_KIRO_REGION,
+        "region": oidc_reg,
+        "kiroRegion": kiro_reg,
+        "oidcRegion": oidc_reg,
         "authMethod": export.auth_method or "idc",
     }
     if export.client_id:
