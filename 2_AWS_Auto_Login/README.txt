@@ -33,6 +33,7 @@ CACH DUNG
   1. Chon file account.
   2. Chon thu muc xuat JSON (mac dinh: output_json).
   3. Chinh "Luong song song" (3-5 la hop ly), "Mat khau moi", IDC start URL neu khac.
+     Da doi pass roi: tick "Ghi de password trong file" + nhap mat khau hien tai.
   4. Chon "Kiro region" — EU workspace: eu-central-1 (mac dinh), US: us-east-1.
   5. Bam "BAT DAU AUTO LOGIN". Xem log chay.
 

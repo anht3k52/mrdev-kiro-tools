@@ -83,18 +83,33 @@ _TR = {
     "OIDC region:": {"en": "OIDC region:", "zh": "OIDC 区域:"},
     "Kiro region:": {"en": "Kiro region:", "zh": "Kiro 区域:"},
     "Mat khau moi (doi lan dau):": {"en": "New password (first-login reset):", "zh": "新密码（首次登录需改）:"},
+    "Mat khau dang nhap (tuy chinh):": {
+        "en": "Login password (custom):",
+        "zh": "登录密码（自定义）:",
+    },
+    "Ghi de password trong file (da doi pass)": {
+        "en": "Override file password (already changed pass)",
+        "zh": "覆盖文件中的密码（已改过密）",
+    },
+    "Bat 'ghi de password' va nhap mat khau hien tai.": {
+        "en": "Enable override and enter the current login password.",
+        "zh": "请勾选覆盖并输入当前登录密码。",
+    },
+    "Login password:": {"en": "Login password:", "zh": "登录密码:"},
     "Luong song song:": {"en": "Parallel threads:", "zh": "并行线程:"},
     "Headless (an browser)": {"en": "Headless (hide browser)", "zh": "无头模式（隐藏浏览器）"},
     "🚀 BAT DAU AUTO LOGIN": {"en": "🚀 START AUTO LOGIN", "zh": "🚀 开始自动登录"},
     "⛔ Dung": {"en": "⛔ Stop", "zh": "⛔ 停止"},
     "Tu nhan dien 2 dang: account moi (bi bat doi pass) & account da doi pass. "
+    "Da doi pass roi -> tick 'Ghi de password' va nhap mat khau hien tai. "
     "Account fresh khong MFA login 100% tu dong. Neu gap captcha (account bi nghi ngo) "
     "-> tat Headless de giai tay.":
         {"en": "Auto-detects both cases: new account (forced password change) & already-changed account. "
+               "Already changed pass -> tick override and enter current login password. "
                "Fresh accounts without MFA log in 100% automatically. If a captcha appears (suspicious account) "
                "-> turn off Headless to solve it manually.",
-         "zh": "自动识别两种情况：新账号（强制改密）和已改密账号。无 MFA 的新账号可 100% 自动登录。"
-               "若出现验证码（账号被怀疑）-> 关闭无头模式手动处理。"},
+         "zh": "自动识别两种情况：新账号（强制改密）和已改密账号。已改过密 -> 勾选覆盖并输入当前登录密码。"
+               "无 MFA 的新账号可 100% 自动登录。若出现验证码 -> 关闭无头模式手动处理。"},
     "Thieu file": {"en": "Missing file", "zh": "缺少文件"},
     "Hay chon file account hop le.": {"en": "Please choose a valid account file.", "zh": "请选择有效的账号文件。"},
     "Loi doc file": {"en": "File read error", "zh": "读取文件出错"},

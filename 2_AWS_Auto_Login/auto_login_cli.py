@@ -8,6 +8,7 @@ Vi du:
   python auto_login_cli.py --file acc.txt
   python auto_login_cli.py --file acc.xlsx --import-9router
   python auto_login_cli.py --file acc.txt --new-pass "MyNew@2026#" --headless
+  python auto_login_cli.py --file acc.txt --login-pass "MatKhauHienTai@"  (da doi pass)
   python auto_login_cli.py --email a@b.com --password Temp123   (1 account nhanh)
 """
 from __future__ import annotations
@@ -30,6 +31,7 @@ def _log(m: str) -> None:
 def run_one(acc: idc.AccountRow, start_url: str, oidc_region: str, kiro_region: str,
             new_pass: str, headless: bool,
             out_dir: Path, import_9router: bool, file_path: str | None,
+            login_pass_override: str = "",
             window_index: int = 0, window_count: int = 1,
             lock=None, plog=None, debug_dir: str = "") -> bool:
     if plog is None:
@@ -44,7 +46,10 @@ def run_one(acc: idc.AccountRow, start_url: str, oidc_region: str, kiro_region: 
         else:
             idc.write_account_result(file_path, acc, new_password, result)
 
+    login_pw = login_pass_override or acc.password
     plog("=== bat dau ===")
+    if login_pass_override:
+        plog("dung mat khau tuy chinh (ghi de file)")
     start = dca.register_and_start(oidc_region=oidc_region, kiro_region=kiro_region,
                                    start_url=start_url, log=plog)
     if not start.ok:
@@ -53,7 +58,7 @@ def run_one(acc: idc.AccountRow, start_url: str, oidc_region: str, kiro_region: 
         return False
 
     outcome = idc.drive_login(
-        start.verification_uri_complete, acc.email, acc.password, new_pass,
+        start.verification_uri_complete, acc.email, login_pw, new_pass,
         log=plog, headless=headless, proxy=acc.proxy,
         window_index=window_index, window_count=window_count, debug_dir=debug_dir)
     if not outcome.ok:
@@ -124,6 +129,8 @@ def main() -> None:
                     help="Kiro Q API region (9router quota), mac dinh eu-central-1")
     ap.add_argument("--new-pass", default=idc.DEFAULT_NEW_PASSWORD,
                     help="Mat khau moi khi bi bat doi lan dau")
+    ap.add_argument("--login-pass", default="",
+                    help="Mat khau dang nhap tuy chinh (ghi de password trong file, da doi pass)")
     ap.add_argument("--out", default="accounts", help="Thu muc xuat JSON")
     ap.add_argument("--headless", action="store_true")
     ap.add_argument("--import-9router", action="store_true",
@@ -147,6 +154,10 @@ def main() -> None:
     if not accounts:
         _log("Khong co account nao trong file."); sys.exit(1)
 
+    login_override = (args.login_pass or "").strip()
+    if login_override:
+        _log("Login password: OVERRIDE (ghi de file)")
+
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -162,7 +173,8 @@ def main() -> None:
         for acc in accounts:
             try:
                 if run_one(acc, args.start_url, oidc_region, kiro_region, args.new_pass, args.headless,
-                           out_dir, args.import_9router, args.file, debug_dir=debug_dir):
+                           out_dir, args.import_9router, args.file,
+                           login_pass_override=login_override, debug_dir=debug_dir):
                     ok += 1
                 else:
                     fail += 1
@@ -180,6 +192,7 @@ def main() -> None:
             try:
                 return run_one(acc, args.start_url, oidc_region, kiro_region, args.new_pass, args.headless,
                                out_dir, args.import_9router, args.file,
+                               login_pass_override=login_override,
                                window_index=i, window_count=n_workers,
                                lock=lock, plog=plog, debug_dir=debug_dir)
             except Exception as e:

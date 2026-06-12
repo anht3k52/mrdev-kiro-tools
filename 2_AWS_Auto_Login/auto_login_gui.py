@@ -138,13 +138,23 @@ class App(ctk.CTk):
         self._new_pw.insert(0, idc.DEFAULT_NEW_PASSWORD)
         self._new_pw.grid(row=1, column=3, sticky="w", pady=6)
 
-        ctk.CTkLabel(f3, text=t("Luong song song:")).grid(row=2, column=0, sticky="w", padx=10, pady=6)
+        ctk.CTkLabel(f3, text=t("Mat khau dang nhap (tuy chinh):")).grid(
+            row=2, column=0, sticky="w", padx=10, pady=6)
+        self._login_pw = ctk.CTkEntry(f3, width=220, show="*")
+        self._login_pw.grid(row=2, column=1, sticky="w", pady=6)
+        self._override_login_pw = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            f3, text=t("Ghi de password trong file (da doi pass)"),
+            variable=self._override_login_pw,
+        ).grid(row=2, column=2, columnspan=2, sticky="w", padx=(16, 0))
+
+        ctk.CTkLabel(f3, text=t("Luong song song:")).grid(row=3, column=0, sticky="w", padx=10, pady=6)
         self._threads = ctk.CTkEntry(f3, width=60, justify="center")
         self._threads.insert(0, "3")
-        self._threads.grid(row=2, column=1, sticky="w", pady=6)
+        self._threads.grid(row=3, column=1, sticky="w", pady=6)
         self._headless = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(f3, text=t("Headless (an browser)"), variable=self._headless
-                        ).grid(row=2, column=2, columnspan=2, sticky="w", padx=(16, 0))
+                        ).grid(row=3, column=2, columnspan=2, sticky="w", padx=(16, 0))
 
         # Run row
         f4 = ctk.CTkFrame(self, fg_color="transparent")
@@ -164,6 +174,7 @@ class App(ctk.CTk):
         ctk.CTkLabel(
             self,
             text=t("Tu nhan dien 2 dang: account moi (bi bat doi pass) & account da doi pass. "
+                   "Da doi pass roi -> tick 'Ghi de password' va nhap mat khau hien tai. "
                    "Account fresh khong MFA login 100% tu dong. Neu gap captcha (account bi nghi ngo) "
                    "-> tat Headless de giai tay."),
             text_color="#5dade2", font=ctk.CTkFont(size=10, slant="italic"),
@@ -187,6 +198,8 @@ class App(ctk.CTk):
             return
         snap = {"file": self._file.get(), "out": self._out.get(),
                 "url": self._start_url.get(), "pw": self._new_pw.get(),
+                "login_pw": self._login_pw.get(),
+                "override_login_pw": self._override_login_pw.get(),
                 "region": self._kiro_region.get(),
                 "oidc_region": self._oidc_region.get(),
                 "threads": self._threads.get(), "headless": self._headless.get()}
@@ -200,6 +213,8 @@ class App(ctk.CTk):
             self._out.delete(0, "end"); self._out.insert(0, snap["out"])
             self._start_url.delete(0, "end"); self._start_url.insert(0, snap["url"])
             self._new_pw.delete(0, "end"); self._new_pw.insert(0, snap["pw"])
+            self._login_pw.delete(0, "end"); self._login_pw.insert(0, snap.get("login_pw", ""))
+            self._override_login_pw.set(bool(snap.get("override_login_pw")))
             self._oidc_region.set(snap.get("oidc_region") or dca.DEFAULT_OIDC_REGION)
             self._kiro_region.set(snap.get("region") or dca.DEFAULT_KIRO_REGION)
             self._threads.delete(0, "end"); self._threads.insert(0, snap["threads"])
@@ -249,6 +264,14 @@ class App(ctk.CTk):
         oidc_region = dca.normalize_oidc_region(self._oidc_region.get())
         kiro_region = dca.normalize_kiro_region(self._kiro_region.get())
         new_pw = self._new_pw.get().strip() or idc.DEFAULT_NEW_PASSWORD
+        login_override = ""
+        if self._override_login_pw.get():
+            login_override = self._login_pw.get().strip()
+            if not login_override:
+                messagebox.showerror(
+                    t("Thieu file"),
+                    t("Bat 'ghi de password' va nhap mat khau hien tai."))
+                return
         headless = self._headless.get()
         try:
             n = int(self._threads.get().strip() or "1")
@@ -267,6 +290,7 @@ class App(ctk.CTk):
             + f"\n\nFile: {path}\nStart URL: {start_url}\n"
             + t("OIDC region:") + f" {oidc_region}\n"
             + t("Kiro region:") + f" {kiro_region}\n"
+            + (t("Login password:") + " *** (ghi de file)\n" if login_override else "")
             + t("Luong song song:") + f" {n_workers}\n"
             + t("Headless:") + f" {headless}\n"
             + t("Xuat JSON ->") + f" {out_dir}"):
@@ -280,7 +304,8 @@ class App(ctk.CTk):
         except Exception:
             scr_w, scr_h = 1920, 1040
         self._log(f"=== AUTO LOGIN: {len(accounts)} account · {n_workers} luong · "
-                  f"oidc={oidc_region} kiro={kiro_region} · headless={headless} ===")
+                  f"oidc={oidc_region} kiro={kiro_region} · headless={headless}"
+                  + (" · login_pw=OVERRIDE" if login_override else "") + " ===")
 
         def work():
             counters = {"ok": 0, "fail": 0, "done": 0}
@@ -293,8 +318,8 @@ class App(ctk.CTk):
                     return False
                 plog("=== bat dau ===")
                 try:
-                    return self._one(acc, start_url, oidc_region, kiro_region, new_pw, headless, out_dir, path,
-                                     plog, i, n_workers, scr_w, scr_h)
+                    return self._one(acc, start_url, oidc_region, kiro_region, new_pw, login_override,
+                                     headless, out_dir, path, plog, i, n_workers, scr_w, scr_h)
                 except Exception as e:
                     plog(f"LOI: {e}")
                     self._safe_write(path, acc, None, f"ERROR: {e}")
@@ -314,8 +339,11 @@ class App(ctk.CTk):
 
         threading.Thread(target=work, daemon=True).start()
 
-    def _one(self, acc, start_url, oidc_region, kiro_region, new_pw, headless, out_dir, file_path,
-             plog, window_index, window_count, scr_w, scr_h) -> bool:
+    def _one(self, acc, start_url, oidc_region, kiro_region, new_pw, login_override, headless,
+             out_dir, file_path, plog, window_index, window_count, scr_w, scr_h) -> bool:
+        login_pw = login_override or acc.password
+        if login_override:
+            plog("dung mat khau tuy chinh (ghi de file)")
         start = dca.register_and_start(oidc_region=oidc_region, kiro_region=kiro_region,
                                        auth_method="idc", start_url=start_url, log=plog)
         if not start.ok:
@@ -323,7 +351,7 @@ class App(ctk.CTk):
             self._safe_write(file_path, acc, None, "REGISTER FAIL")
             return False
         outcome = idc.drive_login(
-            start.verification_uri_complete, acc.email, acc.password, new_pw,
+            start.verification_uri_complete, acc.email, login_pw, new_pw,
             log=plog, headless=headless, stop_event=self._stop, proxy=acc.proxy,
             window_index=window_index, window_count=window_count,
             screen_w=scr_w, screen_h=scr_h)
