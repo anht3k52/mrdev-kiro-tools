@@ -166,6 +166,12 @@ _TR = {
     "Da bo qua {n} file trung profileArn trong lo nay (chi giu 1).":
         {"en": "Skipped {n} duplicate profileArn file(s) in this batch (kept 1 only).",
          "zh": "本批次跳过 {n} 个 profileArn 重复文件（仅保留 1 个）。"},
+    "Da bo qua {n} file trung account trong lo nay (cung email/token).":
+        {"en": "Skipped {n} duplicate account file(s) in this batch (same email/token).",
+         "zh": "本批次跳过 {n} 个重复账号文件（相同 email/token）。"},
+    "CANH BAO: nhieu account CHUNG profileArn — quota Kiro giong nhau, nhung moi connection co token rieng.":
+        {"en": "WARNING: multiple accounts SHARE profileArn — same Kiro quota, but each connection has its own token.",
+         "zh": "警告：多个账号共用 profileArn — Kiro 额度相同，但每个连接有独立 token。"},
     "tam ~1h": {"en": "~1h temp", "zh": "临时~1h"},
     "⚠⚠ CANH BAO: {n} account TRUNG profileArn (chung 1 quota voi acc da co/da add — them KHONG tang quota):":
         {"en": "⚠⚠ WARNING: {n} account(s) DUPLICATE profileArn (same quota as existing/added — adds NO extra quota):",

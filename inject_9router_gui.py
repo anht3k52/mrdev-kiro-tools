@@ -7,6 +7,7 @@ Chay:  python inject_9router_gui.py   (hoac bam RUN.bat)
 """
 from __future__ import annotations
 
+import re
 import threading
 import webbrowser
 from pathlib import Path
@@ -15,6 +16,13 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 
 BOT_URL = "https://web.telegram.org/a/#8632172880"
+_EMAIL_FROM_FNAME = re.compile(r"kiro-durable-(.+?)-\d{8}_\d{6}_\d+\.json$", re.I)
+
+
+def _email_from_filename(name: str) -> str:
+    m = _EMAIL_FROM_FNAME.match(name)
+    return m.group(1) if m else ""
+
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
@@ -26,6 +34,7 @@ from nine_router import (
     find_db, list_kiro_rows, describe_row, row_profile_arn, row_can_refresh,
     parse_kiro_export, match_export_to_rows, apply_export_to_row, create_connection,
     verify_token_profile, capture_9router_launch, stop_9router, start_9router,
+    export_account_key,
 )
 from i18n import t, set_lang, get_lang, LANG_DISPLAY, DISPLAY_TO_CODE, LANG_ORDER
 
@@ -242,6 +251,8 @@ class App(*_BASES):
             if not export.can_create():
                 problems.append((label, "thieu access_token hoac profileArn"))
                 continue
+            if not export.email:
+                export.email = _email_from_filename(label)
             parsed.append((label, Path(p).stem, export))
         self._run(parsed, problems)
 
@@ -259,21 +270,21 @@ class App(*_BASES):
             messagebox.showerror(t("Loi doc DB"), str(e))
             return
         plan_update, plan_create, plan_skip = [], [], []
-        seen_create_arn: set[str] = set()
+        seen_create_keys: set[str] = set()
         for label, name, export in parsed:
-            arn = export.profile_arn
             m = match_export_to_rows(rows, export)
             if m.exact:
                 plan_update.append((label, name, export, m.exact))
                 continue
-            if arn in seen_create_arn:
-                plan_skip.append((label, arn))
+            acct_key = export_account_key(export)
+            if acct_key in seen_create_keys:
+                plan_skip.append((label, export.email or acct_key))
                 continue
-            seen_create_arn.add(arn)
+            seen_create_keys.add(acct_key)
             plan_create.append((label, name, export))
         if not plan_update and not plan_create:
             skip_txt = ("\n\n" + t("Bo qua trung:") + "\n"
-                        + "\n".join(f"  • {lb}: ...{a.split('/')[-1]}" for lb, a in plan_skip)
+                        + "\n".join(f"  • {lb}: {who}" for lb, who in plan_skip)
                         if plan_skip else "")
             messagebox.showwarning(t("Khong xu ly duoc gi"),
                                    (skip_txt + "\n" if skip_txt else "")
@@ -287,14 +298,17 @@ class App(*_BASES):
         for label, name, export in plan_create:
             short = export.profile_arn.split("/")[-1]
             tag = "DURABLE ✓" if export.can_refresh() else (t("tam ~1h") + " ⚠")
-            lines.append(f"  • [{t('TAO MOI')} · {tag}] {label} → ...{short}")
-        for label, arn in plan_skip:
-            short = arn.split("/")[-1]
-            lines.append(f"  • [{t('BO QUA TRUNG')}] {label} → ...{short}")
+            who = export.email or name
+            lines.append(f"  • [{t('TAO MOI')} · {tag}] {label} → {who} (...{short})")
+        for label, who in plan_skip:
+            lines.append(f"  • [{t('BO QUA TRUNG')}] {label} → {who}")
         skip_note = ""
         if plan_skip:
-            skip_note = "\n\n" + t("Da bo qua {n} file trung profileArn trong lo nay (chi giu 1).").format(
+            skip_note = "\n\n" + t("Da bo qua {n} file trung account trong lo nay (cung email/token).").format(
                 n=len(plan_skip))
+        shared_arn = len({e.profile_arn for _, _, e in plan_create}) < len(plan_create)
+        if shared_arn and plan_create:
+            skip_note += "\n" + t("CANH BAO: nhieu account CHUNG profileArn — quota Kiro giong nhau, nhung moi connection co token rieng.")
         extra = (("\n\n" + t("Bo qua:") + "\n"
                   + "\n".join(f"  • {lb}: {r}" for lb, r in problems)) if problems else "")
         if not messagebox.askyesno(
@@ -331,11 +345,11 @@ class App(*_BASES):
                     except Exception as e:
                         fail += 1
                         self._log_ts(f"UPDATE FAIL {r.id[:8]}..: {e}")
-            created_arns: set[str] = set()
+            created_keys: set[str] = set()
             for label, name, export in plan_create:
-                arn = export.profile_arn
-                if arn in created_arns:
-                    self._log_ts(f"SKIP {label}: trung profileArn ...{arn.split('/')[-1]}")
+                acct_key = export_account_key(export)
+                if acct_key in created_keys:
+                    self._log_ts(f"SKIP {label}: trung account ({export.email or acct_key})")
                     continue
                 if do_verify and export.access_token:
                     s, msg = verify_token_profile(
@@ -343,7 +357,7 @@ class App(*_BASES):
                     self._log_ts(f"verify {label}: HTTP {s} — {msg}")
                 try:
                     res = create_connection(db, export, name=name)
-                    created_arns.add(arn)
+                    created_keys.add(acct_key)
                     created += 1
                     self._log_ts(f"CREATE {res['id'][:8]}.. name={res['name']} "
                                  f"profile=...{res['profile_arn'].split('/')[-1]} "

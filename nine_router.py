@@ -203,6 +203,28 @@ def _row_access_token(data: dict) -> str:
     return str(data.get("accessToken") or data.get("access_token") or "")
 
 
+def _row_refresh_token(data: dict) -> str:
+    return str(data.get("refreshToken") or data.get("refresh_token") or "")
+
+
+def export_account_key(export: "KiroExport") -> str:
+    """Khoa 1 account trong lo inject — email/token, KHONG chi profileArn.
+
+    Nhieu user IAM cung IDC thuong CHUNG 1 profileArn (enterprise) nhung token khac nhau.
+    """
+    email = (export.email or "").strip().lower()
+    if email:
+        return f"email:{email}"
+    rt = (export.refresh_token or "").strip()
+    if rt:
+        return f"rt:{rt[:80]}"
+    at = (export.access_token or "").strip()
+    if at:
+        return f"at:{at[:80]}"
+    arn = (export.profile_arn or "").strip()
+    return f"arn:{arn}" if arn else "unknown"
+
+
 def idc_directory(text: str) -> str:
     """Trich directory id 'd-xxxxxxxxxx' tu startUrl/UserId/start_url.
 
@@ -482,24 +504,37 @@ class MatchResult:
 
 
 def match_export_to_rows(rows: list[KiroRow], export: KiroExport) -> MatchResult:
-    """Tim row khop, uu tien: access token == -> profileArn == -> IDC directory == ."""
+    """Tim row khop: access token -> email -> refresh_token -> profileArn (1 row)."""
     # 1. Access token trung (chac chan dung account)
     if export.access_token:
         tok = [r for r in rows if _row_access_token(r.data) == export.access_token]
         if tok:
             return MatchResult(exact=tok, reason="access token trung khop")
-    # 2. profileArn trung — cap nhat row cu, KHONG tao connection moi (tranh trung quota)
+    # 2. Email trung (moi IAM user — profileArn co the giong nhau)
+    if export.email:
+        em = export.email.strip().lower()
+        by_email = [r for r in rows if (r.email or "").strip().lower() == em]
+        if by_email:
+            return MatchResult(exact=by_email, reason="email trung khop")
+    # 3. refresh_token trung
+    if export.refresh_token:
+        by_rt = [r for r in rows
+                 if _row_refresh_token(r.data) == export.refresh_token]
+        if by_rt:
+            return MatchResult(exact=by_rt, reason="refresh_token trung khop")
+    # 4. profileArn trung — chi khi DUY NHAT 1 row (tranh ghi de nham account khac)
     if export.profile_arn:
         by_arn = [r for r in rows if row_profile_arn(r) == export.profile_arn]
-        if by_arn:
-            return MatchResult(exact=by_arn, reason="profileArn trung khop")
-    # 3. IDC directory trung (startUrl d-xxxx) — chi khi chua match profileArn
+        if len(by_arn) == 1:
+            return MatchResult(exact=by_arn, reason="profileArn trung khop (1 row)")
+    # 5. IDC directory — chi khi DUY NHAT 1 row trong directory
     if export.start_url_dir:
         dirs = [r for r in rows
                 if idc_directory(_row_start_url(r.data)) == export.start_url_dir]
-        if dirs:
-            return MatchResult(exact=dirs, reason=f"IDC directory {export.start_url_dir} trung khop")
-    return MatchResult(exact=[], reason="khong tu dong match duoc — chon row thu cong")
+        if len(dirs) == 1:
+            return MatchResult(exact=dirs,
+                               reason=f"IDC directory {export.start_url_dir} (1 row)")
+    return MatchResult(exact=[], reason="khong tu dong match duoc — tao connection moi")
 
 
 # ---------------------------------------------------------------------
